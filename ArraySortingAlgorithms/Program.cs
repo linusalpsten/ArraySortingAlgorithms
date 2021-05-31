@@ -335,11 +335,22 @@ namespace ArraySortingAlgorithms
     public class Benchmarks
     {
         int[] list;
+        int[] list100;
+        int[] list1000;
+        int[] list1920;
+        int[] list10000;
         IComparer<int> comparer;
         public Benchmarks()
         {
             list = Enumerable.Range(1, 100).ToArray();
+            list100 = Enumerable.Range(1, 100).ToArray();
+            list1000 = Enumerable.Range(1, 1000).ToArray();
+            list10000 = Enumerable.Range(1, 10000).ToArray();
             list.Shuffle();
+            list100.Shuffle();
+            list1000.Shuffle();
+            list1920.Shuffle();
+            list10000.Shuffle();
             comparer = new Comp();
         }
 
@@ -347,14 +358,20 @@ namespace ArraySortingAlgorithms
         //public async Task SelectionSort() => await list.SelectionSort(comparer);
         //[Benchmark]
         //public async Task BubbleSort() => await list.BubbleSort(comparer);
+        //[Benchmark]
+        //public async Task InsertionSort() => await list.InsertionSort(comparer);
+        //[Benchmark]
+        //public async Task MergeSort() => await list.MergeSort(comparer);
+        //[Benchmark]
+        //public async Task QuickSort() => await list.QuickSort(comparer);
+        //[Benchmark]
+        //public async Task HybridSort() => await list.HybridSort(comparer);
         [Benchmark]
-        public async Task InsertionSort() => await list.InsertionSort(comparer);
+        public async Task HybridSort100() => await list100.HybridSort(comparer);
         [Benchmark]
-        public async Task MergeSort() => await list.MergeSort(comparer);
+        public async Task HybridSort1000() => await list1000.HybridSort(comparer);
         [Benchmark]
-        public async Task QuickSort() => await list.QuickSort(comparer);
-        [Benchmark]
-        public async Task HybridSort() => await list.HybridSort(comparer);
+        public async Task HybridSort10000() => await list10000.HybridSort(comparer);
     }
     class Program
     {
