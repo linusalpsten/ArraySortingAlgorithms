@@ -1,4 +1,7 @@
-﻿using System;
+﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
+using BenchmarkDotNet.Running;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -20,12 +23,14 @@ namespace ArraySortingAlgorithms
                 list[n] = value;
             }
         }
-
-        public static string ToString<T>(this IEnumerable<T> list)
+        public static bool IsSorted<T>(this IEnumerable<T> list, IComparer<T> comparer)
         {
-            string s = "[";
-            s += string.Join(",", list) + "]";
-            return s;
+            bool isSorted = true;
+            for (int i = 0; i < list.Count() - 1; i++)
+            {
+                isSorted = isSorted & comparer.Compare(list.ElementAt(i), list.ElementAt(i + 1)) <= 0;
+            }
+            return isSorted;
         }
     }
     class Comp : IComparer<int>
@@ -37,25 +42,6 @@ namespace ArraySortingAlgorithms
     }
     static class Helper
     {
-        private static DateTime benchmarkTime = DateTime.Now;
-        public static void Write<T>(IEnumerable<T> sorted, string method, IComparer<T> comparer, TimeSpan time)
-        {
-            Console.WriteLine($"{method}");
-            Console.WriteLine($"Time: {time}");
-            Console.WriteLine($"Is Sorted: {IsSorted(sorted, comparer)}");
-            Console.WriteLine();
-        }
-
-        public static bool IsSorted<T>(IEnumerable<T> list, IComparer<T> comparer)
-        {
-            bool isSorted = true;
-            for (int i = 0; i < list.Count() - 1; i++)
-            {
-                isSorted = isSorted & comparer.Compare(list.ElementAt(i), list.ElementAt(i + 1)) <= 0;
-            }
-            return isSorted;
-        }
-
         public static IEnumerable<T> Merge<T>(IEnumerable<T> Sorted1, IEnumerable<T> Sorted2, IComparer<T> comparer)
         {
             T[] merged = new T[Sorted1.Count() + Sorted2.Count()];
@@ -137,20 +123,10 @@ namespace ArraySortingAlgorithms
 
             return (part1, part2);
         }
-
-        public static void StartBenchmark()
-        {
-            benchmarkTime = DateTime.Now;
-        }
-
-        public static TimeSpan StopBenchmark()
-        {
-            return DateTime.Now - benchmarkTime;
-        }
     }
     public static class Algorithms
     {
-        public static IEnumerable<T> SelectionSort<T>(this IEnumerable<T> list, IComparer<T> comparer)
+        public async static Task<IEnumerable<T>> SelectionSort<T>(this IEnumerable<T> list, IComparer<T> comparer)
         {
             T[] sorted = new T[list.Count()];
             int sortedIndex = 0;
@@ -196,7 +172,7 @@ namespace ArraySortingAlgorithms
 
             return sorted;
         }
-        public static IEnumerable<T> BubbleSort<T>(this IEnumerable<T> list, IComparer<T> comparer)
+        public async static Task<IEnumerable<T>> BubbleSort<T>(this IEnumerable<T> list, IComparer<T> comparer)
         {
             T[] copy = list.Select(i => i).ToArray();
 
@@ -219,7 +195,7 @@ namespace ArraySortingAlgorithms
 
             return copy;
         }
-        public static IEnumerable<T> RecursiveBubbleSort<T>(this IEnumerable<T> list, IComparer<T> comparer)
+        public async static Task<IEnumerable<T>> RecursiveBubbleSort<T>(this IEnumerable<T> list, IComparer<T> comparer)
         {
             if (list.Count() <= 1)
             {
@@ -236,14 +212,14 @@ namespace ArraySortingAlgorithms
                     copy[i + 1] = v;
                 }
             }
-            var sorted = RecursiveBubbleSort(copy.Take(copy.Length - 1).ToArray(), comparer);
+            var sorted = await RecursiveBubbleSort(copy.Take(copy.Length - 1).ToArray(), comparer);
             for (int i = 0; i < sorted.Count(); i++)
             {
                 copy[i] = sorted.ElementAt(i);
             }
             return copy;
         }
-        public static IEnumerable<T> InsertionSort<T>(this IEnumerable<T> list, IComparer<T> comparer)
+        public async static Task<IEnumerable<T>> InsertionSort<T>(this IEnumerable<T> list, IComparer<T> comparer)
         {
             T[] copy = list.Select(i => i).ToArray();
 
@@ -277,15 +253,16 @@ namespace ArraySortingAlgorithms
             }
             return copy;
         }
-        public static IEnumerable<T> BogoSort<T>(this IList<T> list, IComparer<T> comparer)
+        public async static Task<IEnumerable<T>> BogoSort<T>(this IList<T> list, IComparer<T> comparer)
         {
+            //copy
             IList<T> sorted = list.Select(i => i).ToArray();
 
             if (list.Count() > 10)
             {
                 return sorted;
             }
-            while (!Helper.IsSorted(sorted, comparer))
+            while (!sorted.IsSorted(comparer))
             {
                 sorted.Shuffle();
             }
@@ -330,51 +307,29 @@ namespace ArraySortingAlgorithms
             return sorted;
         }
     }
+    public class Benchmarks
+    {
+        int[] list;
+        IComparer<int> comparer;
+        public Benchmarks()
+        {
+            list = Enumerable.Range(1, 100).ToArray();
+            list.Shuffle();
+            comparer = new Comp();
+        }
+        
+        [Benchmark]
+        public async Task InsertionSort() => await list.InsertionSort(comparer);
+        [Benchmark]
+        public async Task MergeSort() => await list.MergeSort(comparer);
+        [Benchmark]
+        public async Task QuickSort() => await list.QuickSort(comparer);
+    }
     class Program
     {
         static async Task Main(string[] args)
         {
-            int[] list = Enumerable.Range(1, 100000).ToArray();
-            list.Shuffle();
-            var comparer = new Comp();
-
-            //too slow for 3000 items
-            //Helper.StartBenchmark();
-            //var selectionSorted = list.SelectionSort(comparer);
-            //TimeSpan selectionTime = Helper.StopBenchmark();
-            //Helper.Write(selectionSorted, nameof(Algorithms.SelectionSort), comparer, selectionTime);
-
-            //Helper.StartBenchmark();
-            //var bubbleSorted = list.BubbleSort(comparer);
-            //TimeSpan bubbleTime = Helper.StopBenchmark();
-            //Helper.Write(bubbleSorted, nameof(Algorithms.BubbleSort), comparer, bubbleTime);
-
-            //stack overflow
-            //Helper.StartBenchmark();
-            //var recursiveBubbleSorted = list.RecursiveBubbleSort(comparer);
-            //TimeSpan recursiveBubbleTime = Helper.StopBenchmark();
-            //Helper.Write(recursiveBubbleSorted, nameof(Algorithms.RecursiveBubbleSort), comparer, recursiveBubbleTime);
-
-            Helper.StartBenchmark();
-            var insertionSorted = list.InsertionSort(comparer);
-            TimeSpan insertionTime = Helper.StopBenchmark();
-            Helper.Write(insertionSorted, nameof(Algorithms.InsertionSort), comparer, insertionTime);
-
-            //joke algorithm, takes incredibly long to sort even a short list
-            //Helper.StartBenchmark();
-            //var bogoSorted = list.BogoSort(comparer);
-            //TimeSpan bogoTime = Helper.StopBenchmark();
-            //Helper.Write(bogoSorted, nameof(Algorithms.BogoSort), comparer, bogoTime);
-
-            Helper.StartBenchmark();
-            var mergeSorted = await list.MergeSort(comparer);
-            TimeSpan mergeTime = Helper.StopBenchmark();
-            Helper.Write(mergeSorted, nameof(Algorithms.MergeSort), comparer, mergeTime);
-
-            Helper.StartBenchmark();
-            var quickSorted = await list.QuickSort(comparer);
-            TimeSpan quickTime = Helper.StopBenchmark();
-            Helper.Write(quickSorted, nameof(Algorithms.QuickSort), comparer, quickTime);
+            var summary = BenchmarkRunner.Run<Benchmarks>();
         }
     }
 }
