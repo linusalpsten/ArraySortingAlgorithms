@@ -342,7 +342,11 @@ namespace ArraySortingAlgorithms
             list.Shuffle();
             comparer = new Comp();
         }
-        
+
+        //[Benchmark]
+        //public async Task SelectionSort() => await list.SelectionSort(comparer);
+        //[Benchmark]
+        //public async Task BubbleSort() => await list.BubbleSort(comparer);
         [Benchmark]
         public async Task InsertionSort() => await list.InsertionSort(comparer);
         [Benchmark]
