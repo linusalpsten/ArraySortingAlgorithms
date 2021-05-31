@@ -306,6 +306,31 @@ namespace ArraySortingAlgorithms
             }
             return sorted;
         }
+        public async static Task<IEnumerable<T>> HybridSort<T>(this IEnumerable<T> list, IComparer<T> comparer)
+        {
+            // setup
+            // 1920 is where insertion sort and merge sort has the same performance
+            if (list.Count() <= 1920)
+            {
+                return await list.HybridSort(comparer, 0);
+            }
+            int steps = Convert.ToInt32(Math.Round(Math.Log2(list.Count() / 1920.0)));
+            return await list.HybridSort(comparer, steps);
+        }
+        private async static Task<IEnumerable<T>> HybridSort<T>(this IEnumerable<T> list, IComparer<T> comparer, int steps)
+        {
+            if (steps <= 0)
+            {
+                return await list.InsertionSort(comparer);
+            }
+            else
+            {
+                int m = list.Count() / 2;
+                var l1 = list.Take(m).HybridSort(comparer, steps - 1);
+                var l2 = list.Skip(m).Take(m).HybridSort(comparer, steps - 1);
+                return Helper.Merge(await l1, await l2, comparer);
+            }
+        }
     }
     public class Benchmarks
     {
@@ -324,6 +349,8 @@ namespace ArraySortingAlgorithms
         public async Task MergeSort() => await list.MergeSort(comparer);
         [Benchmark]
         public async Task QuickSort() => await list.QuickSort(comparer);
+        [Benchmark]
+        public async Task HybridSort() => await list.HybridSort(comparer);
     }
     class Program
     {
